@@ -239,7 +239,7 @@ int main(int argc, char **argv) try {
   // cuBLAS variables
   int status;
   dpct::queue_ptr handle;
-
+  
   // host variables
   size_t matSize = N * N * sizeof(DATA_TYPE);
 
@@ -263,6 +263,8 @@ int main(int argc, char **argv) try {
   srand(12345);
 
   // find cuda device
+  std::cout << "\nRunning on " << dpct::get_default_queue().get_device().get_info<sycl::info::device::name>()
+<<"\n"; 
   printf("> initializing..\n");
   int dev = 0; //findCudaDevice(argc, (const char**)argv);
   if (dev == -1) {
