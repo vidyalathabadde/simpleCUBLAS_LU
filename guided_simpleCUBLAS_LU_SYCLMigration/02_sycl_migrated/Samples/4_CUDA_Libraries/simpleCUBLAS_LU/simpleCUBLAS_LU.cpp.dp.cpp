@@ -75,10 +75,6 @@
 int cublasXgetrfBatched(dpct::queue_ptr handle, int n, DATA_TYPE *const A[],
                         int lda, int *P, int *info, int batchSize) try {
 #ifdef DOUBLE_PRECISION
-  /*
-  DPCT1047:14: The meaning of P in the dpct::getrf_batch_wrapper is different
-  from the cublasDgetrfBatched. You may need to check the migrated code.
-  */
   return DPCT_CHECK_ERROR(dpct::getrf_batch_wrapper(
       *handle, n, const_cast<double **>(A), lda, P, info, batchSize));
 #else
@@ -300,18 +296,15 @@ int main(int argc, char **argv) try {
   h_infoArray = (int*)xmalloc(BATCH_SIZE * sizeof(int));
 
   // allocate memory for device variables
-  checkCudaErrors(
       DPCT_CHECK_ERROR(d_Aarray = (double *)sycl::malloc_device(
-                           BATCH_SIZE * matSize, dpct::get_in_order_queue())));
-  checkCudaErrors(
+                           BATCH_SIZE * matSize, dpct::get_in_order_queue()));
       DPCT_CHECK_ERROR(d_pivotArray = sycl::malloc_device<int>(
-                           N * BATCH_SIZE, dpct::get_in_order_queue())));
-  checkCudaErrors(DPCT_CHECK_ERROR(
-      d_infoArray =
-          sycl::malloc_device<int>(BATCH_SIZE, dpct::get_in_order_queue())));
-  checkCudaErrors(DPCT_CHECK_ERROR(
+                           N * BATCH_SIZE, dpct::get_in_order_queue()));
+     DPCT_CHECK_ERROR(d_infoArray =
+          sycl::malloc_device<int>(BATCH_SIZE, dpct::get_in_order_queue()));
+     DPCT_CHECK_ERROR(
       d_ptr_array = (double **)sycl::malloc_device(
-          BATCH_SIZE * sizeof(DATA_TYPE *), dpct::get_in_order_queue())));
+          BATCH_SIZE * sizeof(DATA_TYPE *), dpct::get_in_order_queue()));
 
   // fill matrix with random data
   printf("> generating random matrices..\n");
@@ -321,19 +314,19 @@ int main(int argc, char **argv) try {
 
   // copy data to device from host
   printf("> copying data from host memory to GPU memory..\n");
-  checkCudaErrors(DPCT_CHECK_ERROR(
+  DPCT_CHECK_ERROR(
       dpct::get_in_order_queue()
           .memcpy(d_Aarray, h_AarrayInput, BATCH_SIZE * matSize)
-          .wait()));
+          .wait());
 
   // create pointer array for matrices
   for (int i = 0; i < BATCH_SIZE; i++) h_ptr_array[i] = d_Aarray + (i * N * N);
 
   // copy pointer array to device memory
-  checkCudaErrors(DPCT_CHECK_ERROR(
+ DPCT_CHECK_ERROR(
       dpct::get_in_order_queue()
           .memcpy(d_ptr_array, h_ptr_array, BATCH_SIZE * sizeof(DATA_TYPE *))
-          .wait()));
+          .wait());
 
   // perform LU decomposition
   printf("> performing LU decomposition..\n");
@@ -352,19 +345,19 @@ int main(int argc, char **argv) try {
 
   // copy data to host from device
   printf("> copying data from GPU memory to host memory..\n");
-  checkCudaErrors(DPCT_CHECK_ERROR(
+  DPCT_CHECK_ERROR(
       dpct::get_in_order_queue()
           .memcpy(h_AarrayOutput, d_Aarray, BATCH_SIZE * matSize)
-          .wait()));
-  checkCudaErrors(DPCT_CHECK_ERROR(
+          .wait());
+  DPCT_CHECK_ERROR(
       dpct::get_in_order_queue()
           .memcpy(h_infoArray, d_infoArray, BATCH_SIZE * sizeof(int))
-          .wait()));
+          .wait());
 #ifdef PIVOT
-  checkCudaErrors(DPCT_CHECK_ERROR(
+  DPCT_CHECK_ERROR(
       dpct::get_in_order_queue()
           .memcpy(h_pivotArray, d_pivotArray, N * BATCH_SIZE * sizeof(int))
-          .wait()));
+          .wait());
 #endif /* PIVOT */
 
   // verify the result
@@ -413,14 +406,10 @@ int main(int argc, char **argv) try {
   }
 
   // free device variables
-  checkCudaErrors(
-      DPCT_CHECK_ERROR(sycl::free(d_ptr_array, dpct::get_in_order_queue())));
-  checkCudaErrors(
-      DPCT_CHECK_ERROR(sycl::free(d_infoArray, dpct::get_in_order_queue())));
-  checkCudaErrors(
-      DPCT_CHECK_ERROR(sycl::free(d_pivotArray, dpct::get_in_order_queue())));
-  checkCudaErrors(
-      DPCT_CHECK_ERROR(sycl::free(d_Aarray, dpct::get_in_order_queue())));
+      DPCT_CHECK_ERROR(sycl::free(d_ptr_array, dpct::get_in_order_queue()));
+      DPCT_CHECK_ERROR(sycl::free(d_infoArray, dpct::get_in_order_queue()));
+      DPCT_CHECK_ERROR(sycl::free(d_pivotArray, dpct::get_in_order_queue()));
+      DPCT_CHECK_ERROR(sycl::free(d_Aarray, dpct::get_in_order_queue()));
 
   // free host variables
   if (h_infoArray) free(h_infoArray);
