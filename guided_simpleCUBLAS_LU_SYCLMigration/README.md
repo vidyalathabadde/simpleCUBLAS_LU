@@ -1,6 +1,6 @@
 ﻿# `simpleCUBLAS_LU` Sample
 
-The simpleCUBLAS_LU is a process in which a single convolution can be divided into two or more convolutions to produce the same output. The original CUDA* source code is migrated to SYCL for portability across GPUs from multiple vendors.
+LU decomposition factors a matrix as the product of an upper triangular matrix and lower triangular matrix. The original CUDA* source code is migrated to SYCL for portability across GPUs from multiple vendors.
 
 | Area              | Description
 |:---                   |:---
@@ -19,8 +19,8 @@ This sample contains two versions in the following folders:
 
 | Folder Name                   | Description
 |:---                           |:---
-| `01_dpct_output`              | Contains the output of SYCLomatic Tool which is a fully migrated version of CUDA code.
-| `02_sycl_migrated`            | Contains the optimized sycl code
+| `01_dpct_output`              | Contains the output of the SYCLomatic tool used to migrate SYCL-compliant code from CUDA code. The tool completely migrates code but needs manual changes to get functional correctness on the given list of hardware.
+| `02_sycl_migrated`            | Contains migrated SYCL code from CUDA code with manual changes.
 
 ## Prerequisites
 
@@ -42,7 +42,7 @@ This sample demonstrates the migration of the following:
 
 ### CUDA source code evaluation
 
-A Separable Convolution is a process in which a single convolution can be divided into two or more convolutions to produce the same output. This sample implements a separable convolution filter of a 2D image with an arbitrary kernel. There are two functions in the code named convolutionRowsGPU and convolutionColumnsGPU in which the kernel functions (convolutionRowsKernel & convolutionColumnsKernel) are called where the loading of the input data and computations are performed. We validate the results with reference CPU separable convolution implementation by calculating the relative L2 norm.
+This example demonstrates how to use the cuBLAS library API for lower-upper (LU) decomposition of a matrix. This sample uses 10000 matrices of size 4x4 and performs LU decomposition of them using batched decomposition API of cuBLAS library. To test the correctness of upper and lower matrices generated, they are multiplied and compared with the original input matrix.
 
 This sample is migrated from the NVIDIA CUDA sample. See the sample [simpleCUBLAS_LU](https://github.com/NVIDIA/cuda-samples/tree/master/Samples/4_CUDA_Libraries/simpleCUBLAS_LU) in the NVIDIA/cuda-samples GitHub.
 
