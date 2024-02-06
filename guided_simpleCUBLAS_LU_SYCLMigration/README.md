@@ -1,16 +1,16 @@
-﻿# `convolutionSeparable` Sample
+﻿# `simpleCUBLAS_LU` Sample
 
-The convolution separable is a process in which a single convolution can be divided into two or more convolutions to produce the same output. The original CUDA* source code is migrated to SYCL for portability across GPUs from multiple vendors.
+The simpleCUBLAS_LU is a process in which a single convolution can be divided into two or more convolutions to produce the same output. The original CUDA* source code is migrated to SYCL for portability across GPUs from multiple vendors.
 
 | Area              | Description
 |:---                   |:---
-| What you will learn              | Migrate convolutionSeparable from CUDA to SYCL and optimize
+| What you will learn              | Migrate simpleCUBLAS_LU from CUDA to SYCL
 | Time to complete              | 15 minutes
-| Category                      | Code Optimization
+| Category                      | Concepts and Functionality
 
 ## Purpose
 
-The sample shows the migration of convolutionSeperable from CUDA to SYCL using SYCLomatic tool and optimizing the migrated sycl code further to achieve good results.
+The sample shows the migration of simpleCUBLAS_LU from CUDA to SYCL using SYCLomatic tool and optimizing the migrated sycl code further to achieve good results.
 
 
 >**Note**: We use Intel® open-sources SYCLomatic migration tool which assists developers in porting CUDA code automatically to SYCL code. To finish the process, developers complete the rest of the coding manually and then tune to the desired level of performance for the target architecture. Users can also use Intel® DPC++ Compatibility Tool which comes along with the Intel® oneAPI Base Toolkit.
@@ -20,7 +20,7 @@ This sample contains two versions in the following folders:
 | Folder Name                   | Description
 |:---                           |:---
 | `01_dpct_output`              | Contains the output of SYCLomatic Tool which is a fully migrated version of CUDA code.
-| `02_sycl_migrated_optimized`            | Contains the optimized sycl code
+| `02_sycl_migrated`            | Contains the optimized sycl code
 
 ## Prerequisites
 
@@ -34,11 +34,9 @@ For more information on how to install Syclomatic Tool & DPC++ CUDA® plugin, vi
 
 ## Key Implementation Details
 
-This sample demonstrates the migration of the following CUDA features: 
+This sample demonstrates the migration of the following: 
 
-- Shared memory
-- Constant memory
-- Cooperative groups
+- CUBLAS Library, LU decomposition
   
 >  **Note**: Refer to [Workflow for a CUDA* to SYCL* Migration](https://www.intel.com/content/www/us/en/developer/tools/oneapi/training/cuda-sycl-migration-workflow.html#gs.s2njvh) for general information about the migration workflow.
 
@@ -46,13 +44,13 @@ This sample demonstrates the migration of the following CUDA features:
 
 A Separable Convolution is a process in which a single convolution can be divided into two or more convolutions to produce the same output. This sample implements a separable convolution filter of a 2D image with an arbitrary kernel. There are two functions in the code named convolutionRowsGPU and convolutionColumnsGPU in which the kernel functions (convolutionRowsKernel & convolutionColumnsKernel) are called where the loading of the input data and computations are performed. We validate the results with reference CPU separable convolution implementation by calculating the relative L2 norm.
 
-This sample is migrated from the NVIDIA CUDA sample. See the sample [convolutionSeparable](https://github.com/NVIDIA/cuda-samples/tree/master/Samples/2_Concepts_and_Techniques/convolutionSeparable) in the NVIDIA/cuda-samples GitHub.
+This sample is migrated from the NVIDIA CUDA sample. See the sample [simpleCUBLAS_LU](https://github.com/NVIDIA/cuda-samples/tree/master/Samples/4_CUDA_Libraries/simpleCUBLAS_LU) in the NVIDIA/cuda-samples GitHub.
 
 ## Set Environment Variables
 
 When working with the command-line interface (CLI), you should configure the oneAPI toolkits using environment variables. Set up your CLI environment by sourcing the `setvars` script every time you open a new terminal window. This practice ensures that your compiler, libraries, and tools are ready for development.
 
-## Migrate the `convolutionSeparable` Sample
+## Migrate the `simpleCUBLAS_LU` Sample
 
 ### Migrate the Code using SYCLomatic
 
@@ -62,9 +60,9 @@ For this sample, the SYCLomatic tool automatically migrates 100% of the CUDA run
    ```
    git clone https://github.com/NVIDIA/cuda-samples.git
    ```
-2. Change to the convolutionSeparable sample directory.
+2. Change to the simpleCUBLAS_LU sample directory.
    ```
-   cd cuda-samples/Samples/2_Concepts_and_Techniques/convolutionSeparable/
+   cd cuda-samples/Samples/4_CUDA_Libraries/simpleCUBLAS_LU
    ```
 3. Generate a compilation database with intercept-build
    ```
@@ -83,36 +81,7 @@ CUDA code includes a custom API findCUDADevice in helper_cuda file to find the b
 ```
 Since its a custom API SYCLomatic tool will not act on it and we can either remove it or replace it with the sycl get_device() API.
 
-### Optimizations
-
-The migrated code can be optimized by using profiling tools which helps in identifying the hotspots (in this case convolutionRowsKernel() and convolutionColumnsKernel()).
- 
-If we observe the migrated SYCL code, especially in the above-mentioned function calls we see many ‘for’ loops that are being unrolled.
-Although loop unrolling exposes opportunities for instruction scheduling optimization by the compiler and thus can improve performance, sometimes it may increase pressure on register allocation and cause register spilling. 
-
-So, it is always a good idea to compare the performance with and without loop unrolling along with different times of unrolls to decide if a loop should be unrolled or how many times to unroll it.
-
-In this case, by implementing the above technique, we can decrease the execution time by avoiding loop unrolling at the innermost “for-loop” of the computation part in convolutionRowsKernel function (line 120) and avoiding loop unrolling at the outer loop of the computation part in convolutionColumnsKernel function (line 242) of the file convolutionSeparable.dp.cpp.
-
-Also, we can still decrease the execution time by avoiding the repetitive loading of c_Kernel[] array (as it is independent of `i` for-loop in convolutionSeparable.dp.cpp file). 
-
-  ```
-  for (int i = ROWS_HALO_STEPS; i < ROWS_HALO_STEPS + ROWS_RESULT_STEPS; i++) {
-      float sum = 0;
-  for (int j = -KERNEL_RADIUS; j <= KERNEL_RADIUS; j++) {
-     sum += c_Kernel[KERNEL_RADIUS - j] *s_Data[item_ct1.get_local_id(1)][item_ct1.get_local_id(2) + i * ROWS_BLOCKDIM_X + j];}
-  ```
-
-We can separate the array and load it into another new array and use it in place of c_Kernel
-
-  ```
-  float a[2*KERNEL_RADIUS + 1];
-  for(int i=0; i<= 2*KERNEL_RADIUS; i++)
-  a[i]=c_Kernel[i]; 
-  ```
->**Note**: These optimization techniques also work with the larger input image sizes.
-
-## Build the `convolutionSeparable` Sample for CPU and GPU
+## Build the `simpleCUBLAS_LU` Sample for CPU and GPU
 
 > **Note**: If you have not already done so, set up your CLI
 > environment by sourcing  the `setvars` script in the root of your oneAPI installation.
@@ -139,30 +108,20 @@ We can separate the array and load it into another new array and use it in place
 > - Enable INTEL_MAX_GPU flag during build which supports Intel® Data Center GPU Max 1550 or 1100 to get optimized performance.
 > - Enable NVIDIA_GPU flag during build which supports NVIDIA GPUs.([oneAPI for NVIDIA GPUs plugin from Codeplay](https://developer.codeplay.com/products/oneapi/nvidia/)  is required to build for NVIDIA GPUs)
    
-By default, this command sequence will build the `dpct_output` as well as `sycl_migrated_optimized` versions of the program.
+By default, this command sequence will build the `sycl_migrated` versions of the program.
 
 3. Run the code
 
    You can run the programs for CPU and GPU. The commands indicate the device target.
 
-      Run `dpct_output` on GPU.
+      Run `sycl_migrated` on GPU.
       ```
-      make run
+      make run_sm
       ```
-      Run `dpct_output` on CPU.
-      ```
-      export ONEAPI_DEVICE_SELECTOR=opencl:cpu
-      make run
-      unset ONEAPI_DEVICE_SELECTOR
-      ```
-      Run `sycl_migrated_optimized` on GPU.
-      ```
-      make run_smo
-      ```
-      Run `sycl_migrated_optimized` on CPU.
+      Run `sycl_migrated` on CPU.
       ```
       export ONEAPI_DEVICE_SELECTOR=opencl:cpu
-      make run_smo
+      make run_sm
       unset ONEAPI_DEVICE_SELECTOR
       ```
 #### Troubleshooting
