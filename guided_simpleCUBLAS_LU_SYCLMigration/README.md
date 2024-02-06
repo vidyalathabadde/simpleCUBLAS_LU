@@ -96,7 +96,12 @@ Since its a custom API SYCLomatic tool will not act on it and we can either remo
 ### On Linux*
 
 1. Change to the sample directory.
-2. Build the program.
+2. For Nvidia GPUs, install the opensource oneMKL lib and set the environment variables before build.
+   ```
+   export ONEMKL_INSTALL_DIR=path_to_opensource_oneMKL_build_dir
+   export LD_LIBRARY_PATH=$ONEMKL_INSTALL_DIR/lib:$LD_LIBRARY_PATH
+   ```
+3. Build the program.
    ```
    $ mkdir build
    $ cd build
@@ -110,7 +115,7 @@ Since its a custom API SYCLomatic tool will not act on it and we can either remo
    
 By default, this command sequence will build the `sycl_migrated` versions of the program.
 
-3. Run the code
+4. Run the code
 
    You can run the programs for CPU and GPU. The commands indicate the device target.
 
