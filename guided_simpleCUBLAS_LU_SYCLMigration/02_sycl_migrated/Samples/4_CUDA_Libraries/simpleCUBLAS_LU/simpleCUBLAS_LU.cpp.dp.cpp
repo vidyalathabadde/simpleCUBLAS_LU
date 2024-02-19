@@ -78,7 +78,8 @@ int cublasXgetrfBatched(dpct::queue_ptr handle, int n, DATA_TYPE *const A[],
   return DPCT_CHECK_ERROR(dpct::getrf_batch_wrapper(
       *handle, n, const_cast<double **>(A), lda, P, info, batchSize));
 #else
-  return cublasSgetrfBatched(handle, n, A, lda, P, info, batchSize);
+  return DPCT_CHECK_ERROR(dpct::getrf_batch_wrapper(
+      *handle, n, const_cast<float **>(A), lda, P, info, batchSize));
 #endif
 }
 catch (sycl::exception const &exc) {
@@ -298,14 +299,14 @@ int main(int argc, char **argv) try {
   h_infoArray = (int*)xmalloc(BATCH_SIZE * sizeof(int));
 
   // allocate memory for device variables
-      DPCT_CHECK_ERROR(d_Aarray = (double *)sycl::malloc_device(
+      DPCT_CHECK_ERROR(d_Aarray = (DATA_TYPE *)sycl::malloc_device(
                            BATCH_SIZE * matSize, dpct::get_in_order_queue()));
       DPCT_CHECK_ERROR(d_pivotArray = sycl::malloc_device<int>(
                            N * BATCH_SIZE, dpct::get_in_order_queue()));
      DPCT_CHECK_ERROR(d_infoArray =
           sycl::malloc_device<int>(BATCH_SIZE, dpct::get_in_order_queue()));
      DPCT_CHECK_ERROR(
-      d_ptr_array = (double **)sycl::malloc_device(
+      d_ptr_array = (DATA_TYPE **)sycl::malloc_device(
           BATCH_SIZE * sizeof(DATA_TYPE *), dpct::get_in_order_queue()));
 
   // fill matrix with random data
