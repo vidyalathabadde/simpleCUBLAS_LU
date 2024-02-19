@@ -1,5 +1,9 @@
 cmake_minimum_required (VERSION 3.4.0)
-set(CMAKE_CXX_COMPILER "icpx")
+if(NVIDIA_GPU)
+        set(CMAKE_CXX_COMPILER "clang++")
+else()
+        set(CMAKE_CXX_COMPILER "icpx")
+endif()
 project (guided_simpleCUBLAS_LU_SYCLMigration)
 # Set default build type to RelWithDebInfo if not specified
 if (NOT CMAKE_BUILD_TYPE)
