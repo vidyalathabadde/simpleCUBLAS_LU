@@ -57,7 +57,7 @@
 #define BATCH_SIZE 10000
 
 // use double precision data type
-#define DOUBLE_PRECISION /* comment this to use single precision */
+//#define DOUBLE_PRECISION /* comment this to use single precision */
 #ifdef DOUBLE_PRECISION
 #define DATA_TYPE double
 #define MAX_ERROR 1e-15
@@ -82,7 +82,12 @@ int cublasXgetrfBatched(dpct::queue_ptr handle, int n, DATA_TYPE *const A[],
   return DPCT_CHECK_ERROR(dpct::getrf_batch_wrapper(
       *handle, n, const_cast<double **>(A), lda, P, info, batchSize));
 #else
-  return cublasSgetrfBatched(handle, n, A, lda, P, info, batchSize);
+  /*
+  DPCT1047:14: The meaning of P in the dpct::getrf_batch_wrapper is different
+  from the cublasSgetrfBatched. You may need to check the migrated code.
+  */
+  return DPCT_CHECK_ERROR(dpct::getrf_batch_wrapper(
+      *handle, n, const_cast<float **>(A), lda, P, info, batchSize));
 #endif
 }
 catch (sycl::exception const &exc) {
@@ -268,7 +273,7 @@ int main(int argc, char **argv) try {
 
   // find cuda device
   printf("> initializing..\n");
-  int dev = 0; //findCudaDevice(argc, (const char**)argv);
+  int dev = findCudaDevice(argc, (const char**)argv);
   if (dev == -1) {
     return (EXIT_FAILURE);
   }
@@ -301,7 +306,7 @@ int main(int argc, char **argv) try {
 
   // allocate memory for device variables
   checkCudaErrors(
-      DPCT_CHECK_ERROR(d_Aarray = (double *)sycl::malloc_device(
+      DPCT_CHECK_ERROR(d_Aarray = (float *)sycl::malloc_device(
                            BATCH_SIZE * matSize, dpct::get_in_order_queue())));
   checkCudaErrors(
       DPCT_CHECK_ERROR(d_pivotArray = sycl::malloc_device<int>(
@@ -310,7 +315,7 @@ int main(int argc, char **argv) try {
       d_infoArray =
           sycl::malloc_device<int>(BATCH_SIZE, dpct::get_in_order_queue())));
   checkCudaErrors(DPCT_CHECK_ERROR(
-      d_ptr_array = (double **)sycl::malloc_device(
+      d_ptr_array = (float **)sycl::malloc_device(
           BATCH_SIZE * sizeof(DATA_TYPE *), dpct::get_in_order_queue())));
 
   // fill matrix with random data
@@ -413,14 +418,14 @@ int main(int argc, char **argv) try {
   }
 
   // free device variables
+  checkCudaErrors(DPCT_CHECK_ERROR(
+      dpct::dpct_free(d_ptr_array, dpct::get_in_order_queue())));
+  checkCudaErrors(DPCT_CHECK_ERROR(
+      dpct::dpct_free(d_infoArray, dpct::get_in_order_queue())));
+  checkCudaErrors(DPCT_CHECK_ERROR(
+      dpct::dpct_free(d_pivotArray, dpct::get_in_order_queue())));
   checkCudaErrors(
-      DPCT_CHECK_ERROR(sycl::free(d_ptr_array, dpct::get_in_order_queue())));
-  checkCudaErrors(
-      DPCT_CHECK_ERROR(sycl::free(d_infoArray, dpct::get_in_order_queue())));
-  checkCudaErrors(
-      DPCT_CHECK_ERROR(sycl::free(d_pivotArray, dpct::get_in_order_queue())));
-  checkCudaErrors(
-      DPCT_CHECK_ERROR(sycl::free(d_Aarray, dpct::get_in_order_queue())));
+      DPCT_CHECK_ERROR(dpct::dpct_free(d_Aarray, dpct::get_in_order_queue())));
 
   // free host variables
   if (h_infoArray) free(h_infoArray);
