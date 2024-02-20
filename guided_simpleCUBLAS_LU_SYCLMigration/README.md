@@ -70,14 +70,14 @@ For this sample, the SYCLomatic tool automatically migrates 100% of the CUDA run
    ```
    The above step creates a JSON file named compile_commands.json with all the compiler invocations and stores the names of the input files and the compiler options.
 
-4. Pass the JSON file as input to the Intel® SYCLomatic Compatibility Tool. The result is written to a folder named dpct_output. The --in-root specifies path to the root of the source tree to be migrated. The --gen-helper-function option will make a copy of dpct header files/functions used in the migrated code into the dpct_output folder as include folder.
+4. Pass the JSON file as input to the Intel® SYCLomatic Compatibility Tool. The result is written to a folder named dpct_output. The --in-root specifies path to the root of the source tree to be migrated. The --gen-helper-function option will make a copy of dpct header files/functions used in the migrated code into the dpct_output folder as include folder. 
+In the native CUDA code, there are two cublas APIs that cannot be enabled (defined by MACROs) during one compilation. So, in one c2s execution, only one code path can be migrated. To get both the APIs migrated we need to exclude the line #define DOUBLE_PRECISION in native cuda code and execute c2s twice as shown below.
+
    ```
-   c2s -p compile_commands.json --in-root ../../.. --gen-helper-function
+   c2s --in-root ../../.. --gen-helper-function --out-root out -p . --extra-arg="-DDOUBLE_PRECISION"
+   c2s --in-root ../../../ --out-root out -p .
    ```
-> **Note**:
-> By default, the native cuda code is set to double precision. During migration, SYCLomatic converts the `cublasDgetrfBatched()` API and `cublasSgetrfBatched()` is left
-> unmigrated. SYCLomatic only migrates the code path which is enabled during compilation.
-> To get the other API migrated, disable the `#define DOUBLE_PRECISION` in the source code which will enable the single precision data type.
+
 ### Manual Workaround
 CUDA code includes a custom API findCUDADevice in helper_cuda file to find the best CUDA Device available
 ```
@@ -112,13 +112,14 @@ Since its a custom API SYCLomatic tool will not act on it and we can either remo
    ```
    $ mkdir build
    $ cd build
-   $ cmake .. or ( cmake -D INTEL_MAX_GPU=1 .. ) or ( cmake -D NVIDIA_GPU=1 .. )
+   $ cmake .. or ( cmake -D INTEL_MAX_GPU=1 .. ) or ( cmake -D NVIDIA_GPU=1 .. ) or ( cmake -D FLOAT_TYPE=1 ..)
    $ make
    ```
 >**Note:** 
-> - By default, no flags are enabled during the build which supports Intel® UHD Graphics, Intel® Gen9, Gen11, Xeon CPU.
+> - By default, no flags are enabled during the build which supports Intel® Gen9, Xeon CPU.
 > - Enable INTEL_MAX_GPU flag during build which supports Intel® Data Center GPU Max 1550 or 1100 to get optimized performance.
 > - Enable NVIDIA_GPU flag during build which supports NVIDIA GPUs.([oneAPI for NVIDIA GPUs plugin from Codeplay](https://developer.codeplay.com/products/oneapi/nvidia/)  is required to build for NVIDIA GPUs)
+> - Enable FLOAT_TYPE flag as gen11 doesn't support double precision data type
    
 By default, this command sequence will build the `sycl_migrated` versions of the program.
 
