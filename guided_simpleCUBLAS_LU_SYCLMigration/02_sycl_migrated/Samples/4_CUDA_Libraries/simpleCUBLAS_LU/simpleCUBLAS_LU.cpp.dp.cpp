@@ -79,9 +79,17 @@
 int cublasXgetrfBatched(dpct::queue_ptr handle, int n, DATA_TYPE *const A[],
                         int lda, int *P, int *info, int batchSize) try {
 #ifdef DOUBLE_PRECISION
+  /*
+  DPCT1047:14: The meaning of P in the dpct::getrf_batch_wrapper is different
+  from the cublasDgetrfBatched. You may need to check the migrated code.
+  */
   return DPCT_CHECK_ERROR(dpct::getrf_batch_wrapper(
       *handle, n, const_cast<double **>(A), lda, P, info, batchSize));
 #else
+  /*
+  DPCT1047:14: The meaning of P in the dpct::getrf_batch_wrapper is different
+  from the cublasSgetrfBatched. You may need to check the migrated code.
+  */
   return DPCT_CHECK_ERROR(dpct::getrf_batch_wrapper(
       *handle, n, const_cast<float **>(A), lda, P, info, batchSize));
 #endif
@@ -244,7 +252,7 @@ int main(int argc, char **argv) try {
   // cuBLAS variables
   int status;
   dpct::queue_ptr handle;
-  
+
   // host variables
   size_t matSize = N * N * sizeof(DATA_TYPE);
 
@@ -268,10 +276,8 @@ int main(int argc, char **argv) try {
   srand(12345);
 
   // find cuda device
-  std::cout << "\nRunning on " << dpct::get_default_queue().get_device().get_info<sycl::info::device::name>()
-<<"\n"; 
   printf("> initializing..\n");
-  int dev = 0; //findCudaDevice(argc, (const char**)argv);
+  int dev = findCudaDevice(argc, (const char**)argv);
   if (dev == -1) {
     return (EXIT_FAILURE);
   }
@@ -303,15 +309,18 @@ int main(int argc, char **argv) try {
   h_infoArray = (int*)xmalloc(BATCH_SIZE * sizeof(int));
 
   // allocate memory for device variables
-      DPCT_CHECK_ERROR(d_Aarray = (DATA_TYPE *)sycl::malloc_device(
+
+  DPCT_CHECK_ERROR(d_Aarray = (float *)sycl::malloc_device(
                            BATCH_SIZE * matSize, dpct::get_in_order_queue()));
-      DPCT_CHECK_ERROR(d_pivotArray = sycl::malloc_device<int>(
-                           N * BATCH_SIZE, dpct::get_in_order_queue()));
-     DPCT_CHECK_ERROR(d_infoArray =
+ 
+  DPCT_CHECK_ERROR(d_pivotArray = sycl::malloc_device<int>(
+                           N * BATCH_SIZE, dpct::get_in_order_queue())));
+  DPCT_CHECK_ERROR(
+      d_infoArray =
           sycl::malloc_device<int>(BATCH_SIZE, dpct::get_in_order_queue()));
-     DPCT_CHECK_ERROR(
-      d_ptr_array = (DATA_TYPE **)sycl::malloc_device(
-          BATCH_SIZE * sizeof(DATA_TYPE *), dpct::get_in_order_queue()));
+  checkCudaErrors(DPCT_CHECK_ERROR(
+      d_ptr_array = (float **)sycl::malloc_device(
+          BATCH_SIZE * sizeof(DATA_TYPE *), dpct::get_in_order_queue())));
 
   // fill matrix with random data
   printf("> generating random matrices..\n");
@@ -330,7 +339,7 @@ int main(int argc, char **argv) try {
   for (int i = 0; i < BATCH_SIZE; i++) h_ptr_array[i] = d_Aarray + (i * N * N);
 
   // copy pointer array to device memory
- DPCT_CHECK_ERROR(
+  DPCT_CHECK_ERROR(
       dpct::get_in_order_queue()
           .memcpy(d_ptr_array, h_ptr_array, BATCH_SIZE * sizeof(DATA_TYPE *))
           .wait());
@@ -413,10 +422,10 @@ int main(int argc, char **argv) try {
   }
 
   // free device variables
-      DPCT_CHECK_ERROR(sycl::free(d_ptr_array, dpct::get_in_order_queue()));
-      DPCT_CHECK_ERROR(sycl::free(d_infoArray, dpct::get_in_order_queue()));
-      DPCT_CHECK_ERROR(sycl::free(d_pivotArray, dpct::get_in_order_queue()));
-      DPCT_CHECK_ERROR(sycl::free(d_Aarray, dpct::get_in_order_queue()));
+  DPCT_CHECK_ERROR(dpct::dpct_free(d_ptr_array, dpct::get_in_order_queue()));
+  DPCT_CHECK_ERROR(dpct::dpct_free(d_infoArray, dpct::get_in_order_queue()));
+  DPCT_CHECK_ERROR(dpct::dpct_free(d_pivotArray, dpct::get_in_order_queue()));
+  DPCT_CHECK_ERROR(dpct::dpct_free(d_Aarray, dpct::get_in_order_queue()));
 
   // free host variables
   if (h_infoArray) free(h_infoArray);
