@@ -61,7 +61,7 @@
 #else
 #endif
 // use double precision data type
-#define DOUBLE_PRECISION /* comment this to use single precision */
+
 #ifdef DOUBLE_PRECISION
 #define DATA_TYPE double
 #define MAX_ERROR 1e-15
@@ -274,10 +274,10 @@ int main(int argc, char **argv) try {
 
   // seed the rand() function with time
   srand(12345);
-
+  std::cout << "\nRunning on " << dpct::get_default_queue().get_device().get_info<sycl::info::device::name>()<<"\n";
   // find cuda device
   printf("> initializing..\n");
-  int dev = findCudaDevice(argc, (const char**)argv);
+  int dev = 0; //findCudaDevice(argc, (const char**)argv);
   if (dev == -1) {
     return (EXIT_FAILURE);
   }
@@ -310,16 +310,16 @@ int main(int argc, char **argv) try {
 
   // allocate memory for device variables
 
-  DPCT_CHECK_ERROR(d_Aarray = (float *)sycl::malloc_device(
+  DPCT_CHECK_ERROR(d_Aarray = (DATA_TYPE *)sycl::malloc_device(
                            BATCH_SIZE * matSize, dpct::get_in_order_queue()));
  
   DPCT_CHECK_ERROR(d_pivotArray = sycl::malloc_device<int>(
-                           N * BATCH_SIZE, dpct::get_in_order_queue())));
+                           N * BATCH_SIZE, dpct::get_in_order_queue()));
   DPCT_CHECK_ERROR(
       d_infoArray =
           sycl::malloc_device<int>(BATCH_SIZE, dpct::get_in_order_queue()));
   DPCT_CHECK_ERROR(
-      d_ptr_array = (float **)sycl::malloc_device(
+      d_ptr_array = (DATA_TYPE **)sycl::malloc_device(
           BATCH_SIZE * sizeof(DATA_TYPE *), dpct::get_in_order_queue()));
 
   // fill matrix with random data
