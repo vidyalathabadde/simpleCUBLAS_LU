@@ -96,12 +96,15 @@ Since its a custom API SYCLomatic tool will not act on it and we can either remo
 ### On Linux*
 
 1. Change to the sample directory.
-2. For Nvidia GPUs, install the opensource oneMKL lib and set the environment variables before build.
+2. For **Nvidia GPUs**, install the opensource dpcpp compiler & opensource oneMKL lib and set the environment variables before build.
+   Here are the [steps](https://intel.github.io/llvm-docs/GetStartedGuide.html#:~:text=the%20same%20name.-,Linux,-%3A) to build opensource oneAPI DPC++ compiler & [steps to build oneMKL](https://oneapi-src.github.io/oneMKL/building_the_project.html#:~:text=install%20.%20%2D%2Dprefix%20%3Cpath_to_install_dir%3E-,Building%20for%20CUDA%C2%B6,-On%20Linux*)
    ```
+   export PATH=path_to_opensource_DPC++_build_binaries:$PATH
+   export LD_LIBRARY_PATH=path_to_opensource_DPC++_lib/:$LD_LIBRARY_PATH
    export ONEMKL_INSTALL_DIR=path_to_opensource_oneMKL_build_dir
    export LD_LIBRARY_PATH=$ONEMKL_INSTALL_DIR/lib:$LD_LIBRARY_PATH
    ```
-3. Build the program.
+4. Build the program.
    ```
    $ mkdir build
    $ cd build
