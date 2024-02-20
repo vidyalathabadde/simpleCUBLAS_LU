@@ -56,6 +56,10 @@
 #define N 4
 #define BATCH_SIZE 10000
 
+#ifndef FLOAT_TYPE
+#define DOUBLE_PRECISION 
+#else
+#endif
 // use double precision data type
 #define DOUBLE_PRECISION /* comment this to use single precision */
 #ifdef DOUBLE_PRECISION
