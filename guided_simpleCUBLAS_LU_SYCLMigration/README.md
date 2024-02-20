@@ -74,6 +74,10 @@ For this sample, the SYCLomatic tool automatically migrates 100% of the CUDA run
    ```
    c2s -p compile_commands.json --in-root ../../.. --gen-helper-function
    ```
+> **Note**:
+> By default, the native cuda code is set to double precision. During migration, SYCLomatic converts the `cublasDgetrfBatched()` API and `cublasSgetrfBatched()` is left
+> unmigrated. SYCLomatic only migrates the code path which is enabled during compilation.
+> To get the other API migrated, disable the `#define DOUBLE_PRECISION` in the source code which will enable the single precision data type.
 ### Manual Workaround
 CUDA code includes a custom API findCUDADevice in helper_cuda file to find the best CUDA Device available
 ```
