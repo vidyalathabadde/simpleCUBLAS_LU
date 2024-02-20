@@ -318,9 +318,9 @@ int main(int argc, char **argv) try {
   DPCT_CHECK_ERROR(
       d_infoArray =
           sycl::malloc_device<int>(BATCH_SIZE, dpct::get_in_order_queue()));
-  checkCudaErrors(DPCT_CHECK_ERROR(
+  DPCT_CHECK_ERROR(
       d_ptr_array = (float **)sycl::malloc_device(
-          BATCH_SIZE * sizeof(DATA_TYPE *), dpct::get_in_order_queue())));
+          BATCH_SIZE * sizeof(DATA_TYPE *), dpct::get_in_order_queue()));
 
   // fill matrix with random data
   printf("> generating random matrices..\n");
