@@ -79,17 +79,9 @@
 int cublasXgetrfBatched(dpct::queue_ptr handle, int n, DATA_TYPE *const A[],
                         int lda, int *P, int *info, int batchSize) try {
 #ifdef DOUBLE_PRECISION
-  /*
-  DPCT1047:14: The meaning of P in the dpct::getrf_batch_wrapper is different
-  from the cublasDgetrfBatched. You may need to check the migrated code.
-  */
   return DPCT_CHECK_ERROR(dpct::getrf_batch_wrapper(
       *handle, n, const_cast<double **>(A), lda, P, info, batchSize));
 #else
-  /*
-  DPCT1047:14: The meaning of P in the dpct::getrf_batch_wrapper is different
-  from the cublasSgetrfBatched. You may need to check the migrated code.
-  */
   return DPCT_CHECK_ERROR(dpct::getrf_batch_wrapper(
       *handle, n, const_cast<float **>(A), lda, P, info, batchSize));
 #endif
@@ -275,9 +267,8 @@ int main(int argc, char **argv) try {
   // seed the rand() function with time
   srand(12345);
   std::cout << "\nRunning on " << dpct::get_default_queue().get_device().get_info<sycl::info::device::name>()<<"\n";
-  // find cuda device
   printf("> initializing..\n");
-  int dev = 0; //findCudaDevice(argc, (const char**)argv);
+  int dev = 0;
   if (dev == -1) {
     return (EXIT_FAILURE);
   }
